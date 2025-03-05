@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KryptoPlanet RSS-Feed</title>
+</head>
+<body>
+    <script>
+        async function generateRSSFeed() {
+            const blogUrl = "https://www.kryptoplanet.net/blog"; // Deine Blog-URL
+
+            try {
+                // Hole Blog-Artikel von Wix
+                const response = await fetch(blogUrl);
+                const text = await response.text();
+                
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, "text/html");
+                const scriptTags = doc.querySelectorAll("script[type='application/json']");
+                
+                let blogPosts = [];
+                scriptTags.forEach(script => {
+                    let jsonData;
+                    try {
+                        jsonData = JSON.parse(script.textContent);
+                        if (jsonData["@type"] === "BlogPosting") {
+                            blogPosts.push(jsonData);
+                        }
+                    } catch (error) {
+                        console.warn("Fehler beim Parsen:", error);
+                    }
+                });
+
+                if (blogPosts.length === 0) {
+                    console.error("Keine Blog-Artikel gefunden.");
+                    return;
+                }
+
+                // Erstelle RSS-Feed
+                let rssContent = `<?xml version="1.0" encoding="UTF-8" ?>\n<rss version="2.0">\n  <channel>\n    <title>KryptoPlanet Blog</title>\n    <link>${blogUrl}</link>\n    <description>Die neuesten Blogartikel von KryptoPlanet.net</description>\n    <language>de</language>\n`;
+
+                blogPosts.forEach(post => {
+                    rssContent += `
+    <item>
+      <title>${post.headline}</title>
+      <link>${post.url}</link>
+      <description>${post.description || "Keine Beschreibung verfügbar"}</description>
+      <pubDate>${new Date(post.datePublished).toUTCString()}</pubDate>
+    </item>\n`;
+                });
+
+                rssContent += "  </channel>\n</rss>";
+
+                console.log("Generierter RSS-Feed:", rssContent);
+            } catch (error) {
+                console.error("Fehler:", error);
+            }
+        }
+
+        generateRSSFeed();
+    </script>
+</body>
+</html>
